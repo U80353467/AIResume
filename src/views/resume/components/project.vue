@@ -25,11 +25,13 @@
             <a-row gutter="24" style="margin-top: 16px">
               <a-col :span="12">
                 <a-date-picker v-model:value="project.startDate" placeholder="开始时间" style="width: 100%"
-                  format="YYYY-MM-DD" value-format="YYYY-MM-DD" />
+                               picker="month"
+                               format="YYYY-MM" value-format="YYYY-MM"  />
               </a-col>
               <a-col :span="12">
                 <a-date-picker v-model:value="project.endDate" placeholder="结束时间" style="width: 100%"
-                  format="YYYY-MM-DD" value-format="YYYY-MM-DD" />
+                               picker="month"
+                               format="YYYY-MM" value-format="YYYY-MM" />
               </a-col>
             </a-row>
             <!-- 项目简介 -->

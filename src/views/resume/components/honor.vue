@@ -18,8 +18,8 @@
                 <a-input v-model:value="honor.honorName" placeholder="请输入奖项名称" addonBefore="奖项" />
               </a-col>
               <a-col :span="12">
-                <a-date-picker v-model:value="honor.date" placeholder="获奖时间" style="width: 100%" format="YYYY-MM-DD"
-                  value-format="YYYY-MM-DD" />
+                <a-date-picker v-model:value="honor.date" placeholder="获奖时间" style="width: 100%" picker="month"
+                               format="YYYY-MM" value-format="YYYY-MM"  />
               </a-col>
             </a-row>
             <AIEnhancePopover :description="`请帮我润色和优化以下内容，是我简历中的获奖描述，

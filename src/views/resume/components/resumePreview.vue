@@ -18,12 +18,12 @@
       <!-- 设置简历主色调-->
       <a-form-item label="简历主色调" name="简历主色调">
         <input id="themeColor1" class="changeColor" type="color" v-model="resumeSetting.themeColor1"
-          @change="(e) => themeColor1 = ((e.target as HTMLInputElement).value)" />
+               @change="(e) => themeColor1 = ((e.target as HTMLInputElement).value)" />
       </a-form-item>
       <!-- 设置简历副色调 -->
       <a-form-item label="简历副色调" name="简历副色调">
         <input id="themeColor2" class="changeColor" type="color" v-model="resumeSetting.themeColor2"
-          @change="(e) => themeColor2 = (e.target as HTMLInputElement).value" />
+               @change="(e) => themeColor2 = (e.target as HTMLInputElement).value" />
       </a-form-item>
       <!-- 设置字体大小 -->
       <a-form-item label="字体大小" name="字体大小">
@@ -47,12 +47,15 @@
       </a-form-item>
     </a-modal>
 
+    <a-button type="primary" @click="autoLayout" style="margin-right: 10px;">一键排版</a-button>
     <a-button type="primary" @click="exportToPDF" id="export-button">导出PDF</a-button>
   </div>
   <div class="preview" ref="resumePreview" @mousedown="startDragging" @wheel.prevent="handleZoom">
     <div class="resume-content" :style="contentStyle">
-      <!-- 动态渲染当前选中的模板组件 -->
-      <component :is="currentComponent" :colorShades="colorShades" />
+      <div ref="contentWrapper">
+        <!-- 动态渲染当前选中的模板组件 -->
+        <component :is="currentComponent" :colorShades="colorShades" />
+      </div>
     </div>
   </div>
 </template>
@@ -228,6 +231,115 @@ const exportToPDF = async () => {
   }
 };
 
+const contentWrapper = ref<HTMLElement | null>(null);
+
+const autoLayout = async () => {
+  message.info('正在进行智能排版，请稍候...', 0);
+
+  const contentElement = contentWrapper.value;
+  if (!contentElement) {
+    message.destroy();
+    message.error('无法找到简历内容元素');
+    return;
+  }
+
+  await nextTick();
+
+  const targetHeight = 1123;
+  let currentHeight = contentElement.scrollHeight;
+
+  const settingsConfig = {
+    fontSize: { min: 12, max: 24, step: 1 },
+    paragraphSpacing: { min: 0, max: 30, step: 1 },
+    sectionSpacing: { min: 0, max: 30, step: 1 },
+    padding_top_bottom: { min: 0, max: 35, step: 1 },
+  };
+
+  const maxIterations = 50;
+  let iterations = 0;
+
+  // Shrinking logic
+  if (currentHeight > targetHeight) {
+    while (currentHeight > targetHeight && iterations < maxIterations) {
+      let changed = false;
+      if (sectionSpacing.value > settingsConfig.sectionSpacing.min) {
+        sectionSpacing.value -= settingsConfig.sectionSpacing.step;
+        changed = true;
+      } else if (paragraphSpacing.value > settingsConfig.paragraphSpacing.min) {
+        paragraphSpacing.value -= settingsConfig.paragraphSpacing.step;
+        changed = true;
+      } else if (fontSize.value > settingsConfig.fontSize.min) {
+        fontSize.value -= settingsConfig.fontSize.step;
+        changed = true;
+      } else if (padding_top_bottom.value > settingsConfig.padding_top_bottom.min) {
+        padding_top_bottom.value -= settingsConfig.padding_top_bottom.step;
+        changed = true;
+      }
+
+      if (!changed) {
+        break; // No more changes possible
+      }
+
+      await nextTick();
+      currentHeight = contentElement.scrollHeight;
+      iterations++;
+    }
+  }
+  // Expanding logic
+  else {
+    while (currentHeight < targetHeight && iterations < maxIterations) {
+      const oldSettings = {
+        sectionSpacing: sectionSpacing.value,
+        paragraphSpacing: paragraphSpacing.value,
+        padding_top_bottom: padding_top_bottom.value,
+        fontSize: fontSize.value
+      };
+      let changed = false;
+
+      if (sectionSpacing.value < settingsConfig.sectionSpacing.max) {
+        sectionSpacing.value += settingsConfig.sectionSpacing.step;
+        changed = true;
+      } else if (paragraphSpacing.value < settingsConfig.paragraphSpacing.max) {
+        paragraphSpacing.value += settingsConfig.paragraphSpacing.step;
+        changed = true;
+      } else if (padding_top_bottom.value < settingsConfig.padding_top_bottom.max) {
+        padding_top_bottom.value += settingsConfig.padding_top_bottom.step;
+        changed = true;
+      } else if (fontSize.value < settingsConfig.fontSize.max) {
+        fontSize.value += settingsConfig.fontSize.step;
+        changed = true;
+      }
+
+      if (!changed) {
+        break; // No more changes possible
+      }
+
+      await nextTick();
+      currentHeight = contentElement.scrollHeight;
+
+      if (currentHeight > targetHeight) {
+        // Revert if overshot
+        sectionSpacing.value = oldSettings.sectionSpacing;
+        paragraphSpacing.value = oldSettings.paragraphSpacing;
+        padding_top_bottom.value = oldSettings.padding_top_bottom;
+        fontSize.value = oldSettings.fontSize;
+        await nextTick();
+        currentHeight = contentElement.scrollHeight; // update height after revert
+        break;
+      }
+      iterations++;
+    }
+  }
+
+  message.destroy();
+  if (iterations >= maxIterations) {
+    message.warn('已达到最大调整次数，排版可能未完成。');
+  } else if (currentHeight > targetHeight) {
+    message.warn('已达到最小布局限制，内容仍可能超出单页。');
+  } else {
+    message.success('一键排版完成！');
+  }
+};
 
 // 简历预览拖拽事件功能
 // 初始化函数，在组件挂载时调用
