@@ -43,5 +43,50 @@
     "thumbnail": "preview.jpg",
     "author": "吃猫的鱼",
     "link": "https://github.com/weidong-repo"
+  },
+  {
+    "id": "202501-en",
+    "name": "简洁模板-单栏-en",
+    "description": "简约而不简单的单栏简历模板。",
+    "folderPath": "templateA-en",
+    "thumbnail": "preview.jpg",
+    "author": "吃猫的鱼",
+    "link": "https://github.com/weidong-repo"
+  },
+  {
+    "id": "202502-en",
+    "name": "简洁模板-单栏-en",
+    "description": "简约而不简单的简历模板。",
+    "folderPath": "templateB-en",
+    "thumbnail": "preview.jpg",
+    "author": "AI",
+    "link": "https://github.com/weidong-repo"
+  },
+  {
+    "id": "202503-en",
+    "name": "简洁模板-双栏-en",
+    "description": "AI构建的简洁双栏简历模板",
+    "folderPath": "templateC-en",
+    "thumbnail": "preview.jpg",
+    "author": "AI",
+    "link": "https://github.com/weidong-repo"
+  },
+  {
+    "id": "202504-en",
+    "name": "简洁模板-单栏-en",
+    "description": "AI构建的简洁单栏简历模板",
+    "folderPath": "templateD-en",
+    "thumbnail": "preview.jpg",
+    "author": "AI",
+    "link": "https://github.com/weidong-repo"
+  },
+  {
+    "id": "devlop-en",
+    "name": "开发版本【开发用】-en",
+    "description": "供开发者参考开发的模板-建议开发者开发的时候复制模板使用。建议把本模板放到最后",
+    "folderPath": "dev-en",
+    "thumbnail": "preview.jpg",
+    "author": "吃猫的鱼",
+    "link": "https://github.com/weidong-repo"
   }
 ]
