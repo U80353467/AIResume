@@ -39,12 +39,12 @@
         </div>
         <div class="detail-row" v-if="resume.personalInfo.website">
           <span class="label">Website:</span>
-          <a :href="resume.personalInfo.website" target="_blank" class="value">{{ resume.personalInfo.website }}</a>
+          <a :href="safeWebsiteUrl(resume.personalInfo.website)" rel="noopener noreferrer" target="_blank" class="value">{{ resume.personalInfo.website }}</a>
         </div>
       </div>
       <!-- Avatar section, displayed only when an avatar is available -->
       <div class="profile-image" v-if="resume.personalInfo.avatar">
-        <img :src="resume.personalInfo.avatar" alt="Profile Photo">
+        <img :src="safeImageUrl(resume.personalInfo.avatar)" alt="Profile Photo">
       </div>
     </div>
 
@@ -65,7 +65,7 @@
         <div class="item" v-for="work in resume.workExperience" :key="work.id">
           <span>{{ work.company }} {{ work.position ? `- ${work.position}` : '' }}</span>
           <span class="date" v-if="work.startDate && work.endDate">({{ work.startDate }} to {{ work.endDate }})</span>
-          <p v-if="work.description" v-html="marked(work.description)"></p>
+          <p v-if="work.description" v-html="renderMarkdown(work.description)"></p>
         </div>
       </div>
     </div>
@@ -73,7 +73,7 @@
     <div class="section skills-section" v-if="resume.skills.length">
       <div class="section-title">Skills</div>
       <div class="skills-list">
-        <p v-for="skill in resume.skills" :key="skill.id" class="skill-item" v-html="marked(skill.skillName)"></p>
+        <p v-for="skill in resume.skills" :key="skill.id" class="skill-item" v-html="renderMarkdown(skill.skillName)"></p>
       </div>
     </div>
 
@@ -87,8 +87,8 @@
             <span class="date" v-if="project.startDate && project.endDate">({{ project.startDate }} to {{ project.endDate
             }})</span>
           </div>
-          <p v-if="project.briefIntroduction" v-html="marked(project.briefIntroduction)"></p>
-          <div v-if="project.description" class="project-details" v-html="marked(project.description)"></div>
+          <p v-if="project.briefIntroduction" v-html="renderMarkdown(project.briefIntroduction)"></p>
+          <div v-if="project.description" class="project-details" v-html="renderMarkdown(project.description)"></div>
         </div>
       </div>
     </div>
@@ -97,7 +97,7 @@
       <div class="section-title">Honors</div>
       <div class="section-content">
         <p v-for="honor in resume.honors" :key="honor.id" class="honor-item">
-          <span v-html="marked(honor.honorName)"></span>
+          <span v-html="renderMarkdown(honor.honorName)"></span>
           <span class="date" v-if="honor.date">{{ honor.date }}</span>
         </p>
       </div>
@@ -105,7 +105,7 @@
 
     <div class="section summary-section" v-if="resume.summary">
       <div class="section-title">Summary</div>
-      <p class="summary" v-html="marked(resume.summary)"></p>
+      <p class="summary" v-html="renderMarkdown(resume.summary)"></p>
     </div>
   </div>
 </template>
@@ -114,7 +114,7 @@
 import { useResumeStore } from '../../store/useResumeStore';
 import { computed, watch, onMounted } from 'vue';
 import type { ColorShades } from '../../types/color';
-import { marked } from 'marked';
+import { renderMarkdown, safeWebsiteUrl, safeImageUrl } from '../../utils/safeContent';
 
 // 接受父组件传递的主题色
 const props = defineProps<{

@@ -18,23 +18,6 @@ export class WorkerPool {
     for (let i = 0; i < workerCount; i++) {
       const worker = new Worker(new URL("./aiWorker.ts", import.meta.url), { type: "module" });
       this.workers.push(worker);
-      worker.onmessage = (event) => {
-        const { taskId, result, isComplete } = event.data;
-        const task = this.queue.find((t) => t.taskId === taskId);
-        if (task) {
-          task.onResponse(result, isComplete);
-        }
-        if (isComplete) {
-          this.activeTasks.delete(taskId);
-          this.workers.push(worker);
-          this.processQueue();
-        }
-      };
-      worker.onerror = (error) => {
-        console.error("Worker 处理任务失败:", error);
-        this.workers.push(worker);
-        this.processQueue();
-      };
     }
   }
 
@@ -53,6 +36,7 @@ export class WorkerPool {
     API_URL: string,
     onResponse: (responseText: string, isComplete: boolean) => void
   ): void {
+    if (this.queue.length >= 16) throw new Error('等待中的 AI 请求过多，请稍后再试');
     const taskId = this.nextTaskId++;
     this.queue.push({ taskId, messages, userApiKey, model, API_URL, onResponse });
     this.processQueue();
@@ -66,24 +50,32 @@ export class WorkerPool {
       const worker = this.workers.pop()!;
       const { taskId, messages, userApiKey, model, API_URL, onResponse } = this.queue.shift()!;
       this.activeTasks.set(taskId, worker);
+      let completed = false;
+      const finish = () => {
+        if (completed) return;
+        completed = true;
+        this.activeTasks.delete(taskId);
+        worker.onmessage = null;
+        worker.onerror = null;
+        this.workers.push(worker);
+        this.processQueue();
+      };
       try {
         // postMessage自动克隆出现问题，这里手动克隆 messages
         const clonedMessages = JSON.parse(JSON.stringify(messages));
         worker.postMessage({ taskId, messages: clonedMessages, userApiKey, model, API_URL });
-        console.log(`任务${taskId}分配给 Worker:${worker}`);
         worker.onmessage = (event) => {
-          const { taskId, result, isComplete } = event.data;
+          const { result, isComplete } = event.data;
           onResponse(result, isComplete);
-          if (isComplete) {
-            this.activeTasks.delete(taskId);
-            this.workers.push(worker);
-            this.processQueue();
-          }
+          if (isComplete) finish();
+        };
+        worker.onerror = () => {
+          onResponse('AI 请求处理失败，请重试', true);
+          finish();
         };
       } catch (error) {
         onResponse("数据传输失败", true);
-        this.workers.push(worker);
-        this.processQueue();
+        finish();
       }
     }
   }
@@ -93,6 +85,8 @@ export class WorkerPool {
    */
   terminate() {
     this.workers.forEach((worker) => worker.terminate());
+    this.activeTasks.forEach((worker) => worker.terminate());
+    this.queue = [];
     this.workers = [];
     this.activeTasks.clear();
   }

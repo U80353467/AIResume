@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { safeWebsiteUrl } from "../../utils/safeContent";
 import { ref, onMounted, computed } from 'vue';
 import { message } from 'ant-design-vue';
 import { ShopOutlined, CheckCircleFilled } from '@ant-design/icons-vue';
@@ -78,7 +79,7 @@ const getTemplateImage = (template: Template): string => {
               <div class="template-title">{{ template.name }}</div>
               <div class="template-author">
                 <!-- 链接 -->
-                作者：<a :href="String(template.link || '')" target="_blank">{{ template.author }}</a>
+                作者：<a :href="safeWebsiteUrl(template.link)" rel="noopener noreferrer" target="_blank">{{ template.author }}</a>
               </div>
               <p class="template-description">{{ template.description }}</p>
               <a-button :type="currentTemplate === template.id ? 'text' : 'primary'"

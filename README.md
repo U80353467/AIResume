@@ -74,8 +74,16 @@ npm run dev
 
 本项目可使用 **Cloudflare Worker** 进行反向代理，以解决跨域问题。例如，针对 **阿里云百炼 API**：
 
-1. 将 `workers.js` 上传至 Cloudflare Worker
-2. 配置密钥 `API_URL` 指向大模型 API 地址（本项目接口适配 OpenAI 兼容 API，如阿里云、DeepSeek 等）
+1. 参考 `wrangler.example.jsonc` 部署 `worker.js`，把 `ALLOWED_ORIGINS` 改为你的前端来源（协议、域名及端口，不带路径；多个来源用逗号分隔）。
+2. 配置 `API_URL` 指向你信任的 HTTPS 大模型接口。本项目不提供默认第三方反代。
+3. 配置名为 `AI_RATE_LIMITER` 的 Cloudflare Rate Limiting binding，示例为每个 Key 每分钟 10 次。`namespace_id` 应在你的账号内选择合适的独立值。未配置限流时 Worker 返回 503；超限返回 429。
+4. 在网站配置页填写部署后的 HTTPS Worker URL、模型和自己的 API Key。Key 仅保存在当前页面内存中，刷新后需重新输入；旧版本保存在浏览器中的 Key 会自动清除。
+
+Worker 只转发调用者自己的 Key；来源白名单不是用户鉴权。限流按 Key 的 SHA-256 摘要计数，遵循 Cloudflare 的每个位置计数及最终一致性模型，不是严格的全局预算。公开部署还可配合账号级配额或 WAF 策略。请求最多 256 KiB，单条消息最多 20000 字符、最多 100 条消息；上游响应最多 2 MiB，总耗时最多 90 秒。
+
+前端的 `public/_headers` 为 Cloudflare Pages 配置 CSP 等安全响应头，构建时会复制到 `dist`。使用其他服务器时，需要在服务器配置中设置相同响应头。修改 `.env.production` 中的 `VITE_API_URL` 可以提供自己控制的默认 HTTPS 地址；不要把 API Key 放到任何 `VITE_*` 环境变量。
+
+依赖安装后可运行 `npm test`（测试使用 Node.js 22+），以及 `npm run build`。安全回归覆盖代理校验、限流、资源限制和客户端流式响应处理。
 
 示例（阿里云 API 地址）：
 

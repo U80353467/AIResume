@@ -20,7 +20,7 @@
             <a v-if="resume.personalInfo.email" class="contact-item">
               <i class="fas fa-envelope"></i>{{ resume.personalInfo.email }}
             </a>
-            <a v-if="resume.personalInfo.website" :href="resume.personalInfo.website" target="_blank"
+            <a v-if="resume.personalInfo.website" :href="safeWebsiteUrl(resume.personalInfo.website)" rel="noopener noreferrer" target="_blank"
               class="contact-item">
               <i class="fas fa-globe"></i>{{ resume.personalInfo.website }}
             </a>
@@ -30,7 +30,7 @@
           </div>
         </div>
         <div v-if="resume.personalInfo.avatar" class="avatar">
-          <img :src="resume.personalInfo.avatar" alt="头像">
+          <img :src="safeImageUrl(resume.personalInfo.avatar)" alt="头像">
         </div>
       </div>
     </header>
@@ -41,7 +41,7 @@
         <i class="fas fa-user"></i>
       </div>
       <h2 class="section-title">个人总结</h2>
-      <div class="section-content summary" v-html="marked(resume.summary)"></div>
+      <div class="section-content summary" v-html="renderMarkdown(resume.summary)"></div>
     </section>
 
     <!-- 教育经历 -->
@@ -76,7 +76,7 @@
             <span v-if="work.startDate" class="time">{{ work.startDate }} ~ {{ work.endDate || '至今' }}</span>
           </div>
 
-          <div v-if="work.description" class="description" v-html="marked(work.description)"></div>
+          <div v-if="work.description" class="description" v-html="renderMarkdown(work.description)"></div>
         </div>
       </div>
     </section>
@@ -95,9 +95,9 @@
             <span v-if="project.startDate" class="time">{{ project.startDate }} ~ {{ project.endDate || '至今' }}</span>
           </div>
 
-          <div v-if="project.briefIntroduction" class="brief" v-html="marked(project.briefIntroduction)"></div>
+          <div v-if="project.briefIntroduction" class="brief" v-html="renderMarkdown(project.briefIntroduction)"></div>
           <ul v-if="project.description" class="description-list">
-            <li v-for="(desc, index) in String(project.description).split('\n')" :key="index" v-html="marked(desc)">
+            <li v-for="(desc, index) in String(project.description).split('\n')" :key="index" v-html="renderMarkdown(desc)">
             </li>
           </ul>
         </div>
@@ -112,7 +112,7 @@
       <h2 class="section-title">技能特长</h2>
       <div class="section-content">
         <div class="skills-list">
-          <p v-for="skill in resume.skills" :key="skill.id" class="skill-item" v-html="marked(skill.skillName)"></p>
+          <p v-for="skill in resume.skills" :key="skill.id" class="skill-item" v-html="renderMarkdown(skill.skillName)"></p>
         </div>
       </div>
     </section>
@@ -125,7 +125,7 @@
       <h2 class="section-title">荣誉奖项</h2>
       <div class="section-content">
         <div v-for="honor in resume.honors" :key="honor.id" class="honor-item">
-          <span class="honor-name" v-html="marked(honor.honorName)"></span>
+          <span class="honor-name" v-html="renderMarkdown(honor.honorName)"></span>
           <span class="honor-date">{{ honor.date }}</span>
         </div>
       </div>
@@ -137,7 +137,7 @@
 import { useResumeStore } from '../../store/useResumeStore';
 import { computed, watch, onMounted } from 'vue';
 import type { ColorShades } from '../../types/color';
-import { marked } from 'marked';
+import { renderMarkdown, safeWebsiteUrl, safeImageUrl } from '../../utils/safeContent';
 import { normalizeSectionOrder } from '../../constants/sectionOrder';
 import type { SectionKey } from '../../types/resume';
 

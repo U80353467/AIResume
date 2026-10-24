@@ -58,7 +58,7 @@ const handleAiEnhance = async (Prompt: string, isExtend: boolean) => {
     );
   } catch (error) {
     console.error("AI 处理失败:", error);
-    AIReply.value = "AI 处理失败，请稍后再试。";
+    AIReply.value = error instanceof Error ? error.message : "AI 处理失败，请稍后再试。";
     loading.value = false;
   }
 };

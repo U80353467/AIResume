@@ -1,69 +1,68 @@
-// 发送请求的worker
 self.onmessage = async (event) => {
   const { taskId, messages, userApiKey, model, API_URL } = event.data;
-  const requestData = {
-    model,
-    messages,
-    stream: true, // 流式响应
-  };
+  const abortController = new AbortController();
+  const timer = setTimeout(() => abortController.abort(), 90000);
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  let currentText = '';
+  let responseBytes = 0;
+  const finish = (result: string) => self.postMessage({ taskId, isComplete: true, result });
   try {
-    const response = await fetch(API_URL, {
+    const url = new URL(API_URL);
+    if (url.protocol !== 'https:' || url.username || url.password || url.hash) throw new Error('API URL 必须使用 HTTPS');
+    const body = JSON.stringify({ model, messages, stream: true });
+    if (new TextEncoder().encode(body).byteLength > 256 * 1024) throw new Error('对话内容过长，请开启新对话');
+    const response = await fetch(url.href, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${userApiKey}`, // 认证信息
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestData),
+      headers: { Authorization: `Bearer ${userApiKey}`, 'Content-Type': 'application/json' },
+      body, redirect: 'error', credentials: 'omit', referrerPolicy: 'no-referrer',
+      signal: abortController.signal,
     });
-    if (response.status === 401) {
-      self.postMessage({ taskId, isComplete: true, result: '认证失败，请检查 API Key 是否正确' });
-      return;
-    } else if (!response.ok) {
-      self.postMessage({ taskId, isComplete: true, result: `请求失败，错误码: ${response.status}` });
-      return;
-    }
-    if (!response.body) {
-      self.postMessage({ taskId, isComplete: true, result: '服务器未返回流数据' });
-      return;
-    }
-
-    // 读取流式响应数据（sse）
-    const reader = response.body.getReader();
+    if (response.status === 401) throw new Error('认证失败，请检查 API Key');
+    if (!response.ok) throw new Error(`请求失败，状态码：${response.status}`);
+    if (!response.body) throw new Error('服务器未返回数据');
+    reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let currentText = '';  //存结果
-
+    let pending = '';
+    const processLine = (line: string): boolean => {
+      if (!line.startsWith('data:')) return false;
+      const data = line.slice(5).trim();
+      if (!data) return false;
+      if (data === '[DONE]') return true;
+      const parsed = JSON.parse(data);
+      if (parsed.error) throw new Error('AI 服务返回错误，请检查模型和配置');
+      const delta = parsed?.choices?.[0]?.delta?.content;
+      if (typeof delta === 'string') {
+        currentText += delta;
+        self.postMessage({ taskId, isComplete: false, result: currentText });
+      }
+      return false;
+    };
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n').filter(line => line.trim() !== '');
-      // 流式响应数据：
-      // {"id":"****","choices":[{"delta":{"content":"我是","function_call":null,"refusal":null,"role":null,"tool_calls":null},
-      // "finish_reason":null,"index":0,"logprobs":null}],"created":1735113344,
-      // "model":"qwen-plus","object":"chat.completion.chunk","service_tier":null,
-      // "system_fingerprint":null,"usage":null}
+      if (value) {
+        responseBytes += value.byteLength;
+        if (responseBytes > 2 * 1024 * 1024) throw new Error('AI 响应内容超过限制');
+      }
+      pending += decoder.decode(value, { stream: !done });
+      const lines = pending.split('\n');
+      pending = lines.pop() || '';
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const jsonLine = line.slice(6).trim();  // 移除 `data: ` 前缀
-          if (jsonLine === '[DONE]') {
-            // 响应：data: [DONE] ，则结束
-            self.postMessage({ taskId, isComplete: true, result: currentText });
-            return;
-          }
-          try {
-            const parsedLine = JSON.parse(jsonLine);
-            const deltaContent = parsedLine?.choices?.[0]?.delta?.content;
-            if (deltaContent) {
-              currentText += deltaContent;
-              self.postMessage({ taskId, isComplete: false, result: currentText });
-            }
-          } catch (err) {
-            self.postMessage({ taskId, result: '解析流数据时出错，请稍后重试' });
-          }
+        if (processLine(line)) {
+          finish(currentText);
+          return;
         }
+      }
+      if (done) {
+        if (pending.trim()) processLine(pending);
+        finish(currentText);
+        return;
       }
     }
   } catch (error) {
-    self.postMessage({ taskId, result: '请求失败，请稍后重试' });
+    finish(abortController.signal.aborted ? '请求超时，请稍后重试' : error instanceof Error ? error.message : '请求失败，请稍后重试');
+  } finally {
+    clearTimeout(timer);
+    abortController.abort();
+    await reader?.cancel().catch(() => {});
   }
 };

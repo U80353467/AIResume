@@ -1,5 +1,28 @@
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
+import { LEGACY_API_ORIGIN } from '../utils/apiEndpoint';
+
+// Remove credentials persisted by older releases before Pinia hydrates settings.
+try {
+  const saved = JSON.parse(localStorage.getItem('settings') || '{}');
+  const migrated: Record<string, string | boolean> = {};
+  if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+    for (const key of ['theme', 'modelName', 'aliApiUrl']) {
+      if (typeof saved[key] === 'string') migrated[key] = saved[key];
+    }
+    if (typeof saved.isDark === 'boolean') migrated.isDark = saved.isDark;
+    if (typeof migrated.aliApiUrl === 'string') {
+      try {
+        if (new URL(migrated.aliApiUrl).origin === LEGACY_API_ORIGIN) migrated.aliApiUrl = '';
+      } catch {
+        migrated.aliApiUrl = '';
+      }
+    }
+  }
+  localStorage.setItem('settings', JSON.stringify(migrated));
+} catch {
+  localStorage.removeItem('settings');
+}
 
 export const useSettingsStore = defineStore(
   'settings',
@@ -11,7 +34,7 @@ export const useSettingsStore = defineStore(
     // 阿里云apikey
     const aliApiKey = ref<string>('');
     // 阿里云调用接口
-    const aliApiUrl = import.meta.env.VITE_API_URL;  //这里用默认的
+    const aliApiUrl = ref<string>(import.meta.env.VITE_API_URL?.trim() || '');
     //模型名称
     const modelName = ref<string>('qwen-turbo');
     // 切换主题
@@ -46,6 +69,6 @@ export const useSettingsStore = defineStore(
     };
   },
   {
-    persist: true, // 开启持久化存储
+    persist: { pick: ['isDark', 'theme', 'aliApiUrl', 'modelName'] },
   }
 );

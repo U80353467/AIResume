@@ -1,0 +1,16 @@
+{
+  "name": "airesume-api",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-24",
+  "vars": {
+    "ALLOWED_ORIGINS": "https://your-resume-site.example",
+    "API_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
+  },
+  "ratelimits": [
+    {
+      "name": "AI_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 10, "period": 60 }
+    }
+  ]
+}

@@ -58,11 +58,10 @@
         <!-- 头像上传 (base64) -->
         <div class="avatar-wrapper">
           <!-- 头像展示 -->
-          <img v-show="personalInfo.avatar" :src="personalInfo.avatar" alt="avatar" class="avatar" />
+          <img v-show="personalInfo.avatar" :src="safeImageUrl(personalInfo.avatar)" alt="avatar" class="avatar" />
 
           <!-- 上传按钮始终存在，但根据头像情况切换显示 -->
-          <a-upload listType="picture-card" :show-upload-list="false" :before-upload="beforeUpload"
-            @change="handleAvatarChange">
+          <a-upload listType="picture-card" :show-upload-list="false" :before-upload="beforeUpload" accept="image/jpeg,image/png">
             <template #default>
               <div class="upload-area">
                 <PlusOutlined />
@@ -78,6 +77,7 @@
 </template>
 
 <script setup lang="ts">
+import { safeImageUrl } from "../../../utils/safeContent";
 import { ref, computed, watch } from 'vue';
 import { useResumeStore } from '../../../store';
 import { PlusOutlined } from '@ant-design/icons-vue';
@@ -107,16 +107,13 @@ const genderOptions = [
 const beforeUpload = (file: File) => {
   const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
   const isLt2M = file.size / 1024 / 1024 < 2;
-  return isJpgOrPng && isLt2M;
-};
-
-// 处理头像上传 (base64)
-const handleAvatarChange = (info: any) => {
+  if (!isJpgOrPng || !isLt2M) return false;
   const reader = new FileReader();
   reader.onload = (e: ProgressEvent<FileReader>) => {
     personalInfo.value.avatar = e.target?.result as string;
   };
-  reader.readAsDataURL(info.file.originFileObj);
+  reader.readAsDataURL(file);
+  return false; // Read locally; never let the upload component send the avatar to a server.
 };
 
 // 监听 store 的变化，保存到 localStorage

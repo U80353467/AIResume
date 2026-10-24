@@ -4,7 +4,7 @@
     <aside class="sidebar">
       <div class="profile-section">
         <div class="avatar-wrapper" v-if="resume.personalInfo.avatar">
-          <img :src="resume.personalInfo.avatar" alt="Avatar" class="avatar">
+          <img :src="safeImageUrl(resume.personalInfo.avatar)" alt="Avatar" class="avatar">
         </div>
         <h1 class="name" v-if="resume.personalInfo.name">{{ resume.personalInfo.name }}</h1>
         <p class="title" v-if="resume.personalInfo.applicationPosition">{{ resume.personalInfo.applicationPosition }}
@@ -42,7 +42,7 @@
         </div>
         <div class="contact-item" v-if="resume.personalInfo.website">
           <i class="fas fa-globe"></i>
-          <span>Website: <a :href="resume.personalInfo.website" target="_blank">{{ resume.personalInfo.website }}</a></span>
+          <span>Website: <a :href="safeWebsiteUrl(resume.personalInfo.website)" rel="noopener noreferrer" target="_blank">{{ resume.personalInfo.website }}</a></span>
         </div>
       </div>
 
@@ -59,7 +59,7 @@
       <div class="side-section" v-if="resume.skills.length">
         <h2 class="side-title">Skills</h2>
         <div class="skills-wrapper">
-          <p class="skill-tag" v-for="skill in resume.skills" :key="skill.id" v-html="marked(skill.skillName)"></p>
+          <p class="skill-tag" v-for="skill in resume.skills" :key="skill.id" v-html="renderMarkdown(skill.skillName)"></p>
         </div>
       </div>
     </aside>
@@ -68,7 +68,7 @@
     <main class="main-content">
       <section class="content-section" v-if="resume.summary">
         <h2 class="section-title">Summary</h2>
-        <p class="summary" v-html="marked(resume.summary)"></p>
+        <p class="summary" v-html="renderMarkdown(resume.summary)"></p>
       </section>
 
       <section class="content-section" v-if="resume.workExperience.length">
@@ -80,7 +80,7 @@
             <span v-if="work.startDate" class="exp-date">{{ work.startDate }} - {{ work.endDate || 'Present' }}</span>
           </div>
 
-          <div class="exp-desc" v-html="marked(work.description)"></div>
+          <div class="exp-desc" v-html="renderMarkdown(work.description)"></div>
         </div>
       </section>
 
@@ -94,15 +94,15 @@
               }}</span>
           </div>
 
-          <div class="proj-brief" v-html="marked(project.briefIntroduction)"></div>
-          <div class="proj-details" v-html="marked(project.description)"></div>
+          <div class="proj-brief" v-html="renderMarkdown(project.briefIntroduction)"></div>
+          <div class="proj-details" v-html="renderMarkdown(project.description)"></div>
         </div>
       </section>
 
       <section class="content-section" v-if="resume.honors.length">
         <h2 class="section-title">Honors</h2>
         <p v-for="honor in resume.honors" :key="honor.id" class="honor-item">
-          <span v-html="marked(honor.honorName)"></span>
+          <span v-html="renderMarkdown(honor.honorName)"></span>
           <span class="honor-date" v-if="honor.date">{{ honor.date }}</span>
         </p>
       </section>
@@ -113,7 +113,7 @@
 <script setup lang="ts">
 import { useResumeStore } from '../../store/useResumeStore';
 import { computed, watch, onMounted } from 'vue';
-import { marked } from 'marked';
+import { renderMarkdown, safeWebsiteUrl, safeImageUrl } from '../../utils/safeContent';
 
 // 引用的store
 const resumeStore = useResumeStore();

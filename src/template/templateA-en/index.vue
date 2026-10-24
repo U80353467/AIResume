@@ -45,12 +45,12 @@
         <div class="detail-row" v-if="resume.personalInfo.website">
           <div class="detail-item">
             <span class="label">Website:</span>
-            <a :href="resume.personalInfo.website" target="_blank" class="value">{{ resume.personalInfo.website }}</a>
+            <a :href="safeWebsiteUrl(resume.personalInfo.website)" rel="noopener noreferrer" target="_blank" class="value">{{ resume.personalInfo.website }}</a>
           </div>
         </div>
       </div>
       <div class="profile-image" v-if="resume.personalInfo.avatar">
-        <img :src="resume.personalInfo.avatar" alt="Profile Photo">
+        <img :src="safeImageUrl(resume.personalInfo.avatar)" alt="Profile Photo">
       </div>
     </section>
 
@@ -58,7 +58,7 @@
     <section class="section skills-section" v-if="resume.honors.length">
       <div class="section-title">Honors</div>
       <ul class="skills-list">
-        <li v-for="honor in resume.honors" :key="honor.id" v-html="marked(honor.honorName)"></li>
+        <li v-for="honor in resume.honors" :key="honor.id" v-html="renderMarkdown(honor.honorName)"></li>
       </ul>
     </section>
 
@@ -80,7 +80,7 @@
     <section class="section skills-section" v-if="resume.skills.length">
       <div class="section-title">Skills</div>
       <ul class="skills-list">
-        <li v-for="skill in resume.skills" :key="skill.id" v-html="marked(skill.skillName)"></li>
+        <li v-for="skill in resume.skills" :key="skill.id" v-html="renderMarkdown(skill.skillName)"></li>
       </ul>
     </section>
     <!-- Work/Internship Experience -->
@@ -96,7 +96,7 @@
             </div>
           </div>
           <ul>
-            <li v-for="(desc, index) in work.description.split('\n')" :key="index" v-html="marked(desc)"></li>
+            <li v-for="(desc, index) in work.description.split('\n')" :key="index" v-html="renderMarkdown(desc)"></li>
           </ul>
         </div>
       </div>
@@ -114,10 +114,10 @@
               <span v-if="project.startDate">{{ project.startDate }} to {{ project.endDate || 'Present' }}</span>
             </div>
             <hr>
-            <p class="project-introduction" v-html="marked(project.briefIntroduction)"></p>
+            <p class="project-introduction" v-html="renderMarkdown(project.briefIntroduction)"></p>
           </div>
           <ul>
-            <li v-for="(desc, index) in project.description.split('\n')" :key="index" v-html="marked(desc)"></li>
+            <li v-for="(desc, index) in project.description.split('\n')" :key="index" v-html="renderMarkdown(desc)"></li>
           </ul>
         </div>
       </div>
@@ -126,7 +126,7 @@
     <!-- Self-Evaluation -->
     <section class="section self-evaluation-section" v-if="resume.summary">
       <div class="section-title">Summary</div>
-      <p class="self-evaluation" v-html="marked(resume.summary)"></p>
+      <p class="self-evaluation" v-html="renderMarkdown(resume.summary)"></p>
     </section>
   </div>
 </template>
@@ -134,7 +134,7 @@
 <script setup lang="ts">
 import { useResumeStore } from '../../store/useResumeStore';
 import { computed, watch, onMounted } from 'vue';
-import { marked } from 'marked';
+import { renderMarkdown, safeWebsiteUrl, safeImageUrl } from '../../utils/safeContent';
 
 // 引入引用的store
 const resumeStore = useResumeStore();

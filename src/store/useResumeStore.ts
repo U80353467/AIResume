@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import { resumeTemplate } from '../data/resumeDataTemplate.ts';
 import { normalizeSectionOrder } from '../constants/sectionOrder';
 import { message } from 'ant-design-vue';
+import { MAX_RESUME_BYTES, normalizeResumeData } from '../utils/resumeValidation';
 // 定义类型
 import type {
   Education, Honor, PersonalInfo,
@@ -26,7 +27,7 @@ export const useResumeStore = defineStore('resume', {
     if (savedResumeData) {
       try {
         const parsed = JSON.parse(savedResumeData);
-        resumeData = { ...resumeData, ...parsed };
+        resumeData = normalizeResumeData(parsed);
       } catch (e) {
         console.error('解析 localStorage 失败:', e);
       }
@@ -72,17 +73,22 @@ export const useResumeStore = defineStore('resume', {
     },
     // 导入数据
     importData(file: File) {
+      if (file.size > MAX_RESUME_BYTES) {
+        message.error('简历文件不能超过 5 MB');
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (event) => {
         try {
           const jsonData = JSON.parse(event.target?.result as string);
-          this.$state = jsonData; // 直接覆盖 Pinia 状态
+          this.$state = normalizeResumeData(jsonData);
           this.saveToLocalStorage(); // 保存到 localStorage
           message.success('数据导入成功！');
         } catch (error) {
-          message.error('数据解析失败，请检查文件格式！');
+          message.error(error instanceof Error ? error.message : '数据解析失败，请检查文件格式！');
         }
       };
+      reader.onerror = () => message.error('文件读取失败，请重试');
       reader.readAsText(file);
     },
     // 清空
@@ -98,7 +104,7 @@ export const useResumeStore = defineStore('resume', {
       try {
         const response = await fetch('/resumeData.json');
         const data = await response.json();
-        this.$state = { ...data, isFirstVisit: false }; // 保持 isFirstVisit
+        this.$state = normalizeResumeData(data);
         this.saveToLocalStorage();
         message.success('数据已自动填充');
       } catch (error) {
@@ -257,7 +263,7 @@ export const useResumeStore = defineStore('resume', {
     loadFromLocalStorage() {
       const stored = localStorage.getItem('resumeStore');
       if (stored) {
-        this.$state = JSON.parse(stored);
+        this.$state = normalizeResumeData(JSON.parse(stored));
       }
     },
 

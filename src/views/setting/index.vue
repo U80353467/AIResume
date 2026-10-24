@@ -7,13 +7,13 @@
       <p class="tips">
         注意：此处调用接口使用的是 OpenAI 的接口格式
         （换言之，只要你的大模型接口厂商使用的是 OpenAI 格式，你填入都能正常调用接口）
-        <span style="color:red">默认值不会改请不要动！！要是完全不会，就只填apikey就行了，点击链接前往获取key，填入即可</span>
+        请填写你信任的服务地址、模型名称和 API Key。
       </p>
       <div class="input-group">
-        <label for="api-url">大模型名称<span style="color:red">（不懂勿改）</span></label>
-        <a-input id="api-url" v-model:value="settingsStore.modelName" placeholder="请输入模型名称" />
+        <label for="model-name">大模型名称</label>
+        <a-input id="model-name" v-model:value="settingsStore.modelName" placeholder="请输入模型名称" />
         <p class="tips">
-          如果用我的反代地址，请使用阿里的大模型，如果不会配置，请勿修改，默认为"qwen-turbo"
+          模型名称须与所用服务一致，例如 qwen-turbo。
           <a href="https://bailian.console.aliyun.com/#/model-market" target="_blank">
             查看阿里百炼模型大全
           </a>。
@@ -22,24 +22,25 @@
 
       <div class="input-group">
         <label for="api-key">API Key（使用大模型）</label>
-        <a-input id="api-key" v-model:value="settingsStore.aliApiKey" placeholder="请输入 API Key" />
+        <a-input-password id="api-key" v-model:value="settingsStore.aliApiKey" placeholder="请输入 API Key"
+          autocomplete="off" />
+        <a-button type="link" @click="settingsStore.aliApiKey = ''">清除 API Key</a-button>
         <p class="tips">
-          请填写 API Key 用于调用 AI 模型。如果下面使用的是我提供的反代地址，请前往阿里云获取
-          <a href="https://bailian.console.aliyun.com/?apiKey=1#/api-key" target="_blank">阿里云百炼 API Key</a>。
+          API Key 只保存在当前页面内存中，刷新或关闭页面后需要重新输入。
         </p>
       </div>
 
       <div class="input-group">
-        <label for="api-url">API URL<span style="color:red">（不懂勿改）</span></label>
-        <a-input id="api-url" v-model:value="settingsStore.aliApiUrl" placeholder="请输入 API URL" />
+        <label for="api-url">API URL</label>
+        <a-input id="api-url" v-model:value="settingsStore.aliApiUrl" placeholder="https://你的服务地址/v1/chat/completions" />
         <p class="tips">
-          请填写 API URL（经过反向代理，解决跨域问题），用于调用 AI 模型。或者直接使用我提供的反代地址：
-          https://resumeai.404.pub/
-          （该地址仅适用于阿里云百炼 API Key）。
+          请使用你自己部署或信任的 HTTPS 服务，并确保它支持浏览器跨域请求。
+          API Key 和提交给 AI 的简历内容会发送到这个地址。
           <a href="https://help.aliyun.com/zh/model-studio/developer-reference/use-qwen-by-calling-api" target="_blank">
             查看阿里百炼官方文档
           </a>。
         </p>
+        <p class="tips" v-if="apiOrigin">请求接收方：{{ apiOrigin }}</p>
       </div>
     </a-card>
   </div>
@@ -47,7 +48,11 @@
 
 <script setup lang="ts">
 import { useSettingsStore } from '../../store/useSettingsStore';
+import { computed } from 'vue';
 const settingsStore = useSettingsStore();
+const apiOrigin = computed(() => {
+  try { return new URL(settingsStore.aliApiUrl).origin; } catch { return ''; }
+});
 </script>
 
 <style scoped>
